@@ -4,7 +4,6 @@ on: [push]
 
 jobs:
   build:
-
     runs-on: windows-latest
     strategy:
       matrix:
@@ -46,6 +45,11 @@ jobs:
         with:
           dotnet-version: 7.0.201
 
+      - name: Set env variables
+        uses: powershell
+        run : |
+          "ACTIONS_ALLOW_UNSECURE_COMMANDS=true" >> $env:GITHUB_ENV
+ 
       # Add  MsBuild to the PATH: https://github.com/microsoft/setup-msbuild
       - name: Setup MSBuild.exe
         uses: microsoft/setup-msbuild@v1.0.0
