@@ -83,4 +83,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: MSIX Package
-          path: ElevenPercent\bin\Release\net7.0-windowsa\eleven-percent.dll
+          path: ElevenPercent\bin\Release\net7.0-windows\eleven-percent.dll
