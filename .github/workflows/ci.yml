@@ -68,16 +68,19 @@ jobs:
           
       # Build the Windows Application Packaging project
       - name: Build the Windows Application Packaging Project (wapproj)
-        run: msbuild $env:Solution_Path /p:Platform=$env:TargetPlatform /p:Configuration=$env:Configuration /p:UapAppxPackageBuildMode=$env:BuildMode /p:AppxBundle=$env:AppxBundle # /p:PackageCertificateKeyFile=$env:SigningCertificate /p:PackageCertificatePassword=${{ secrets.Pfx_Key }}
+        run: msbuild $env:Solution_Path /p:Platform=$env:TargetPlatform /p:Configuration=$env:Configuration # /p:UapAppxPackageBuildMode=$env:BuildMode /p:AppxBundle=$env:AppxBundle # /p:PackageCertificateKeyFile=$env:SigningCertificate /p:PackageCertificatePassword=${{ secrets.Pfx_Key }}
         env:
           AppxBundle: Never
           BuildMode: SideLoadOnly
           Configuration: Release
           TargetPlatform: ${{ matrix.targetplatform }}
           
+      - name: tree
+        run : |
+          tree .
       # Upload the MSIX package: https://github.com/marketplace/actions/upload-artifact
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: MSIX Package
-          path: ElevenPercent.Package\AppPackages\
+          path: ElevenPercent\bin\Release\net7.0-windowsa\eleven-percent.dll
