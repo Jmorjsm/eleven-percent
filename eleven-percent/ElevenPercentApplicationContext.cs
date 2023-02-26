@@ -11,10 +11,11 @@ public class ElevenPercentApplicationContext : ApplicationContext
         };
 
         contextMenuStrip.Items.Add(new ToolStripMenuItem("Exit", null, Exit));
-        
+        PowerStatus powerStatus = SystemInformation.PowerStatus;
+        int percent = (int)Math.Ceiling(powerStatus.BatteryLifePercent*100d);
         _trayIcon = new NotifyIcon()
         {
-            Icon = IconFromText("11"),
+            Icon = IconFromText(percent.ToString()),
             ContextMenuStrip = contextMenuStrip,
             Visible = true,
         };
@@ -23,18 +24,32 @@ public class ElevenPercentApplicationContext : ApplicationContext
 
     private static Icon IconFromText(string str)
     {
-        Font fontToUse = new Font("Microsoft Sans Serif", 16, FontStyle.Regular, GraphicsUnit.Pixel);
-        Brush brushToUse = new SolidBrush(Color.White);
+        Font fontToUse = new Font("Microsoft Sans Serif", 10, FontStyle.Regular, GraphicsUnit.Pixel);
+        Brush brushToUse = new SolidBrush(Color.Black);
         Bitmap bitmapText = new Bitmap(16, 16);
         Graphics g = Graphics.FromImage(bitmapText);
 
-        IntPtr hIcon;
+        nint hIcon;
 
         g.Clear(Color.Transparent);
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.SingleBitPerPixelGridFit;
-        g.DrawString(str, fontToUse, brushToUse, -4, -2);
+        float xOffset;
+        if (str.Length == 3)
+        {
+            xOffset = -4;
+        }
+        else if (str.Length == 2)
+        {
+            xOffset = 0;
+        }
+        else
+        {
+            xOffset = 4;
+        }
+        
+        g.DrawString(str, fontToUse, brushToUse, xOffset, 0);
         hIcon = (bitmapText.GetHicon());
-        Icon fromHandle = System.Drawing.Icon.FromHandle(hIcon);
+        Icon fromHandle = Icon.FromHandle(hIcon);
         return fromHandle;
         //DestroyIcon(hIcon.ToInt32);
     }
