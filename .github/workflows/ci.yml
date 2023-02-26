@@ -63,8 +63,6 @@ jobs:
       # Restore the application
       - name:  Restore the application to populate the obj folder
         run: msbuild $env:Solution_Path /t:Restore /p:Configuration=$env:Configuration
-        env:
-          Configuration: $env:Configuration
           
       # Build the Windows Application Packaging project
       - name: Build the Windows Application Packaging Project (wapproj)
