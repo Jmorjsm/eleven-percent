@@ -46,7 +46,6 @@ jobs:
           dotnet-version: 7.0.201
 
       - name: Set env variables
-        uses: powershell
         run : |
           "ACTIONS_ALLOW_UNSECURE_COMMANDS=true" >> $env:GITHUB_ENV
  
