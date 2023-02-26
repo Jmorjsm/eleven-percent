@@ -1,6 +1,9 @@
 ﻿name: cs
 
-on: [push]
+on:
+  push:
+    # tags:
+      # - '*'
 
 jobs:
   build:
@@ -10,7 +13,7 @@ jobs:
       matrix:
         dotnet-version: ['7.0']
         channel: [ Dev, Prod_Sideload, Prod_Store ]
-        targetPlatform: [ x86, x64 ]
+        targetPlatform: [ Any CPU ]
         include:
           
           # includes the following variables for the matrix leg matching Dev
@@ -40,68 +43,81 @@ jobs:
             MsixPublisherId: CN=jmorjsm
             MsixPackageDisplayName: ElevenPercent (ProdStore)
 
-  steps: # Update the appxmanifest before build by setting the per-channel values set in the matrix.
-    - name: Update manifest version
-      run: |
-        [xml]$manifest = get-content ".\$env:Wap_Project_Directory\Package.appxmanifest"
-        $manifest.Package.Identity.Version = "$env:NBGV_SimpleVersion.0"
-        $manifest.Package.Identity.Name = "${{ matrix.MsixPackageId }}"
-        $manifest.Package.Identity.Publisher = "${{ matrix.MsixPublisherId }}"
-        $manifest.Package.Properties.DisplayName = "${{ matrix.MsixPackageDisplayName }}"
-        $manifest.Package.Applications.Application.VisualElements.DisplayName = "${{ matrix.MsixPackageDisplayName }}"
-        $manifest.save(".\$env:Wap_Project_Directory\Package.appxmanifest")
-        
-    # Restore the application
-    - name:  Restore the Wpf application to populate the obj folder
-      run: msbuild $env:Solution_Path /t:Restore /p:Configuration=$env:Configuration /p:RuntimeIdentifier=$env:RuntimeIdentifier
-      env:
-        Configuration: Debug
-        RuntimeIdentifier: win-${{ matrix.targetplatform }}
-        
-    # Build the Windows Application Packaging project for Dev and Prod_Sideload
-    - name: Build the Windows Application Packaging Project (wapproj) for ${{ matrix.ChannelName }}
-      run: msbuild $env:Solution_Path /p:Platform=$env:TargetPlatform /p:Configuration=$env:Configuration /p:UapAppxPackageBuildMode=$env:BuildMode /p:AppxBundle=$env:AppxBundle /p:PackageCertificateKeyFile=$env:SigningCertificate /p:PackageCertificatePassword=${{ secrets.Pfx_Key }}
-      if: matrix.ChannelName != 'Prod_Store'
-      env:
-        AppxBundle: Never
-        AppInstallerUri: ${{ matrix.DistributionUrl }}
-        BuildMode: SideLoadOnly
-        Configuration: ${{ matrix.Configuration }}
-        GenerateAppInstallerFile: True
-        TargetPlatform: ${{ matrix.targetplatform }}
+    steps: # Update the appxmanifest before build by setting the per-channel values set in the matrix.
+      - uses: actions/checkout@v3
+      - name: Install .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 7.0.201
+          
+      - name: Update manifest version
+        run: |
+          [xml]$manifest = get-content ".\$env:Wap_Project_Directory\Package.appxmanifest"
+          $manifest.Package.Identity.Version = "$env:NBGV_SimpleVersion.0"
+          $manifest.Package.Identity.Name = "${{ matrix.MsixPackageId }}"
+          $manifest.Package.Identity.Publisher = "${{ matrix.MsixPublisherId }}"
+          $manifest.Package.Properties.DisplayName = "${{ matrix.MsixPackageDisplayName }}"
+          $manifest.Package.Applications.Application.VisualElements.DisplayName = "${{ matrix.MsixPackageDisplayName }}"
+          $manifest.save(".\$env:Wap_Project_Directory\Package.appxmanifest")
 
-    # Build the Windows Application Packaging project for Prod_Store
-    - name: Build the Windows Application Packaging Project (wapproj) for ${{ matrix.ChannelName }}
-      run: msbuild $env:Solution_Path /p:Platform=$env:TargetPlatform /p:Configuration=$env:Configuration /p:UapAppxPackageBuildMode=$env:BuildMode /p:AppxBundle=$env:AppxBundle /p:GenerateAppInstallerFile=$env:GenerateAppInstallerFile /p:AppxPackageSigningEnabled=$env:AppxPackageSigningEnabled
-      if: matrix.ChannelName == 'Prod_Store'
-      env:
-        AppxBundle: Never
-        AppxPackageSigningEnabled: False
-        BuildMode: StoreOnly
-        Configuration: ${{ matrix.Configuration }}
-        GenerateAppInstallerFile: False
-        TargetPlatform: ${{ matrix.targetplatform }}
-   
-    # Create the release:  https://github.com/actions/create-release
-    - name: Create release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-      with:
-        tag_name: ${{ github.ref}}.${{matrix.ChannelName}}.${{ matrix.targetplatform }}
-        release_name: ${{ github.ref }}.${{ matrix.ChannelName }}.${{ matrix.targetplatform }}
-        draft: false
-        prerelease: false
+      - name: Set env variables
+        run : |
+          "ACTIONS_ALLOW_UNSECURE_COMMANDS=true" >> $env:GITHUB_ENV
+ 
+      # Add  MsBuild to the PATH: https://github.com/microsoft/setup-msbuild
+      - name: Setup MSBuild.exe
+        uses: microsoft/setup-msbuild@v1.0.0
+      
+      # Restore the application
+      - name:  Restore the application to populate the obj folder
+        run: msbuild $env:Solution_Path /t:Restore /p:Configuration=$env:Configuration
+        env:
+          Configuration: Debug
 
-    # Upload release asset:   https://github.com/actions/upload-release-asset
-    - name: Update release asset
-      id: upload-release-asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}  # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-        asset_path: ElevenPercent.Package\AppPackages\AppPackages.zip
-        asset_name: AppPackages.zip
-        asset_content_type: application/zip
+      # Build the Windows Application Packaging project for Dev and Prod_Sideload
+      - name: Build the Windows Application Packaging Project (wapproj) for ${{ matrix.ChannelName }}
+        run: msbuild $env:Solution_Path /p:Platform=$env:TargetPlatform /p:Configuration=$env:Configuration /p:UapAppxPackageBuildMode=$env:BuildMode /p:AppxBundle=$env:AppxBundle /p:PackageCertificateKeyFile=$env:SigningCertificate /p:PackageCertificatePassword=${{ secrets.Pfx_Key }}
+        if: matrix.ChannelName != 'Prod_Store'
+        env:
+          AppxBundle: Never
+          AppInstallerUri: ${{ matrix.DistributionUrl }}
+          BuildMode: SideLoadOnly
+          Configuration: ${{ matrix.Configuration }}
+          GenerateAppInstallerFile: True
+          TargetPlatform: ${{ matrix.targetplatform }}
+
+      # Build the Windows Application Packaging project for Prod_Store
+      - name: Build the Windows Application Packaging Project (wapproj) for ${{ matrix.ChannelName }}
+        run: msbuild $env:Solution_Path /p:Platform=$env:TargetPlatform /p:Configuration=$env:Configuration /p:UapAppxPackageBuildMode=$env:BuildMode /p:AppxBundle=$env:AppxBundle /p:GenerateAppInstallerFile=$env:GenerateAppInstallerFile /p:AppxPackageSigningEnabled=$env:AppxPackageSigningEnabled
+        if: matrix.ChannelName == 'Prod_Store'
+        env:
+          AppxBundle: Never
+          AppxPackageSigningEnabled: False
+          BuildMode: StoreOnly
+          Configuration: ${{ matrix.Configuration }}
+          GenerateAppInstallerFile: False
+          TargetPlatform: ${{ matrix.targetplatform }}
+
+      # Create the release:  https://github.com/actions/create-release
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ github.ref}}.${{matrix.ChannelName}}.${{ matrix.targetplatform }}
+          release_name: ${{ github.ref }}.${{ matrix.ChannelName }}.${{ matrix.targetplatform }}
+          draft: false
+          prerelease: false
+
+      # Upload release asset:   https://github.com/actions/upload-release-asset
+      - name: Update release asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}  # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: ElevenPercent.Package\AppPackages\AppPackages.zip
+          asset_name: AppPackages.zip
+          asset_content_type: application/zip
