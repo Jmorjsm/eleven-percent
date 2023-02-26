@@ -15,7 +15,7 @@ jobs:
       matrix:
         dotnet-version: ['7.0']
         channel: [ Dev, Prod_Sideload, Prod_Store ]
-        targetPlatform: [ x86, x64 ]
+        targetPlatform: [ Any CPU ]
         include:
           
           # includes the following variables for the matrix leg matching Dev
