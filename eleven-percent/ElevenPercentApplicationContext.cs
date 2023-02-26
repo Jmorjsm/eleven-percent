@@ -1,25 +1,46 @@
-﻿namespace eleven_percent;
+﻿using Timer = System.Windows.Forms.Timer;
+
+namespace eleven_percent;
 
 public class ElevenPercentApplicationContext : ApplicationContext
 {
     private NotifyIcon _trayIcon;
-
+    private Timer _timer;
     public ElevenPercentApplicationContext()
     {
-        ContextMenuStrip contextMenuStrip = new ContextMenuStrip()
-        {
-        };
+        ContextMenuStrip contextMenuStrip = new ContextMenuStrip();
 
         contextMenuStrip.Items.Add(new ToolStripMenuItem("Exit", null, Exit));
-        PowerStatus powerStatus = SystemInformation.PowerStatus;
-        int percent = (int)Math.Ceiling(powerStatus.BatteryLifePercent*100d);
+        int percent = GetBatteryPercent();
         _trayIcon = new NotifyIcon()
         {
             Icon = IconFromText(percent.ToString()),
             ContextMenuStrip = contextMenuStrip,
             Visible = true,
         };
+        this._timer = new Timer()
+        {
+            Interval = 5000,
+        };
         
+        _timer.Tick += UpdateBatteryPercent;
+
+        _timer.Start();
+    }
+
+    private void UpdateBatteryPercent(object? sender, EventArgs args)
+    {
+        Icon? oldIcon = _trayIcon.Icon;
+        int percent = GetBatteryPercent();
+        _trayIcon.Icon = IconFromText(percent.ToString());
+        oldIcon?.Dispose();
+    }
+
+    private static int GetBatteryPercent()
+    {
+        PowerStatus powerStatus = SystemInformation.PowerStatus;
+        int percent = (int)Math.Ceiling(powerStatus.BatteryLifePercent * 100d);
+        return percent;
     }
 
     private static Icon IconFromText(string str)
@@ -57,6 +78,14 @@ public class ElevenPercentApplicationContext : ApplicationContext
     void Exit(object? sender, EventArgs e)
     {
         _trayIcon.Visible = false;
+        this.Dispose();
         Application.Exit();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        this._timer.Dispose();
+        this._trayIcon.Dispose();
     }
 }

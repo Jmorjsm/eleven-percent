@@ -1,5 +1,3 @@
-using System.ComponentModel.Design;
-
 namespace eleven_percent;
 
 static class Program
