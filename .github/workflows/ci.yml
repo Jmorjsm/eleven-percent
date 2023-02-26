@@ -5,6 +5,12 @@ on: [push]
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      Solution_Path: eleven-percent.sln
+      #Test_Project_Path: MyWpfApp.Tests\MyWpfApp.Tests.csproj
+      Wpf_Project_Path: eleven-percent\eleven-percent.csproj
+      Wap_Project_Directory: ElevenPercent.Package
+      Wap_Project_Name: ElevenPercent.Package.wapproj
     strategy:
       matrix:
         dotnet-version: ['7.0']
@@ -62,7 +68,7 @@ jobs:
           
       # Build the Windows Application Packaging project
       - name: Build the Windows Application Packaging Project (wapproj)
-        run: msbuild $env:Solution_Path /p:Platform=$env:TargetPlatform /p:Configuration=$env:Configuration /p:UapAppxPackageBuildMode=$env:BuildMode /p:AppxBundle=$env:AppxBundle /p:PackageCertificateKeyFile=$env:SigningCertificate /p:PackageCertificatePassword=${{ secrets.Pfx_Key }}
+        run: msbuild $env:Solution_Path /p:Platform=$env:TargetPlatform /p:Configuration=$env:Configuration /p:UapAppxPackageBuildMode=$env:BuildMode /p:AppxBundle=$env:AppxBundle # /p:PackageCertificateKeyFile=$env:SigningCertificate /p:PackageCertificatePassword=${{ secrets.Pfx_Key }}
         env:
           AppxBundle: Never
           BuildMode: SideLoadOnly
