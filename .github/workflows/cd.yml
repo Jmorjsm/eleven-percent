@@ -102,9 +102,9 @@ jobs:
         run : |
           tree .
 
-      - uses: montudor/action-zip@v1
-        with:
-          args: zip -qq -r ElevenPercent.zip ElevenPercent\bin\${{matrix.Configuration}}\net7.0-windows\
+      - name: zip
+        run: |
+          Compress-Archive -DestinationPath ElevenPercent.zip -Path ElevenPercent\bin\${{matrix.Configuration}}\net7.0-windows\
     
       - name: Release
         uses: softprops/action-gh-release@v1
