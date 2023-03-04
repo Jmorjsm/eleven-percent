@@ -1,0 +1,86 @@
+﻿name: ci
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      Solution_Path: eleven-percent.sln
+      #Test_Project_Path: MyWpfApp.Tests\MyWpfApp.Tests.csproj
+      Wpf_Project_Path: eleven-percent\eleven-percent.csproj
+      Wap_Project_Directory: ElevenPercent.Package
+      Wap_Project_Name: ElevenPercent.Package.wapproj
+    strategy:
+      matrix:
+        dotnet-version: ['7.0']
+        channel: [ Dev, Prod_Sideload, Prod_Store ]
+        targetPlatform: [ Any CPU ]
+        include:
+          
+          # includes the following variables for the matrix leg matching Dev
+          - channel: Dev
+            ChannelName: Dev
+            Configuration: Debug
+            #DistributionUrl: https://microsoft.github.io/github-actions-for-desktop-apps-distribution-dev
+            MsixPackageId: ElevenPercent.Dev
+            MsixPublisherId: CN=jmorjsm
+            MsixPackageDisplayName: ElevenPercent (Dev)
+          
+          # includes the following variables for the matrix leg matching Prod_Sideload
+          - channel: Prod_Sideload
+            Configuration: Release
+            ChannelName: Prod_Sideload
+            #DistributionUrl: https://microsoft.github.io/github-actions-for-desktop-apps-distribution-prod
+            MsixPackageId: ElevenPercent.ProdSideload
+            MsixPublisherId: CN=jmorjsm
+            MsixPackageDisplayName: ElevenPercent (ProdSideload)
+          
+          # includes the following variables for the matrix leg matching Prod_Store
+          - channel: Prod_Store
+            Configuration: Release
+            ChannelName: Prod_Store
+            DistributionUrl:
+            MsixPackageId: ElevenPercent.ProdStore
+            MsixPublisherId: CN=jmorjsm
+            MsixPackageDisplayName: ElevenPercent (ProdStore)
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 7.0.201
+
+      - name: Set env variables
+        run : |
+          "ACTIONS_ALLOW_UNSECURE_COMMANDS=true" >> $env:GITHUB_ENV
+ 
+      # Add  MsBuild to the PATH: https://github.com/microsoft/setup-msbuild
+      - name: Setup MSBuild.exe
+        uses: microsoft/setup-msbuild@v1.0.0
+      
+      # Restore the application
+      - name:  Restore the application to populate the obj folder
+        run: msbuild $env:Solution_Path /t:Restore /p:Configuration=$env:Configuration
+        env:
+          Configuration: Debug
+          
+      # Build the Windows Application Packaging project
+      - name: Build the Windows Application Packaging Project (wapproj)
+        run: msbuild $env:Solution_Path /p:Platform=$env:TargetPlatform /p:Configuration=$env:Configuration # /p:UapAppxPackageBuildMode=$env:BuildMode /p:AppxBundle=$env:AppxBundle # /p:PackageCertificateKeyFile=$env:SigningCertificate /p:PackageCertificatePassword=${{ secrets.Pfx_Key }}
+        env:
+          AppxBundle: Never
+          BuildMode: SideLoadOnly
+          Configuration: Release
+          TargetPlatform: ${{ matrix.targetplatform }}
+          
+      - name: tree
+        run : |
+          tree .
+      # Upload the MSIX package: https://github.com/marketplace/actions/upload-artifact
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: MSIX Package
+          path: ElevenPercent\bin\Release\net7.0-windows\eleven-percent.dll
