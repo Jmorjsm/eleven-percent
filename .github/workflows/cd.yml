@@ -104,7 +104,7 @@ jobs:
 
       - name: zip
         run: |
-          Compress-Archive -DestinationPath ElevenPercent.zip -Path ElevenPercent\bin\${{matrix.Configuration}}\net7.0-windows\
+          Compress-Archive -DestinationPath Eleven-Percent.zip -Path Eleven-Percent\bin\${{matrix.Configuration}}\net7.0-windows\
     
       - name: Release
         uses: softprops/action-gh-release@v1
