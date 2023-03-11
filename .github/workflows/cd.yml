@@ -59,7 +59,6 @@ jobs:
       # Build the Windows Application Packaging project for Dev and Prod_Sideload
       - name: publish self-contained app
         run: dotnet publish $env:Solution_Path --runtime $env:Runtime --configuration=$env:Configuration --self-contained true
-        if: matrix.ChannelName != 'Prod_Sideload'
         env:
           Runtime: ${{ matrix.Runtime }}
           Configuration: ${{ matrix.Configuration }}
