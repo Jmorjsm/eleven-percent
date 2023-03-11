@@ -43,7 +43,7 @@ public class ElevenPercentApplicationContext : ApplicationContext
 
         using (StreamWriter writer = new StreamWriter(shortcutPath))
         {
-            string app = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            string app = Path.Combine(System.AppContext.BaseDirectory, "eleven-percent.exe");
             writer.WriteLine("[InternetShortcut]");
             writer.WriteLine("URL=file:///" + app);
             writer.WriteLine("IconIndex=0");
