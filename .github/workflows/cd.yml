@@ -12,36 +12,18 @@ jobs:
     strategy:
       matrix:
         dotnet-version: ['7.0']
-        channel: [ Dev, Prod_Sideload, Prod_Store ]
+        channel: [ Prod_Sideload ]
         targetPlatform: [ Any CPU ]
         include:
-          
-          # includes the following variables for the matrix leg matching Dev
-          - channel: Dev
-            ChannelName: Dev
-            Configuration: Debug
-            #DistributionUrl: https://microsoft.github.io/github-actions-for-desktop-apps-distribution-dev
-            MsixPackageId: ElevenPercent.Dev
-            MsixPublisherId: CN=jmorjsm
-            MsixPackageDisplayName: ElevenPercent (Dev)
-          
           # includes the following variables for the matrix leg matching Prod_Sideload
           - channel: Prod_Sideload
             Configuration: Release
             ChannelName: Prod_Sideload
+            Runtime: win-x64
             #DistributionUrl: https://microsoft.github.io/github-actions-for-desktop-apps-distribution-prod
             MsixPackageId: ElevenPercent.ProdSideload
             MsixPublisherId: CN=jmorjsm
             MsixPackageDisplayName: ElevenPercent (ProdSideload)
-          
-          # includes the following variables for the matrix leg matching Prod_Store
-          - channel: Prod_Store
-            Configuration: Release
-            ChannelName: Prod_Store
-            DistributionUrl:
-            MsixPackageId: ElevenPercent.ProdStore
-            MsixPublisherId: CN=jmorjsm
-            MsixPackageDisplayName: ElevenPercent (ProdStore)
 
     steps: # Update the appxmanifest before build by setting the per-channel values set in the matrix.
       - uses: actions/checkout@v3
@@ -72,30 +54,14 @@ jobs:
       - name:  Restore the application to populate the obj folder
         run: msbuild $env:Solution_Path /t:Restore /p:Configuration=$env:Configuration
         env:
-          Configuration: Debug
+          Configuration: ${{ matrix.Configuration }}
 
       # Build the Windows Application Packaging project for Dev and Prod_Sideload
-      - name: Build the Windows Application Packaging Project (wapproj) for ${{ matrix.ChannelName }}
-        run: msbuild $env:Solution_Path /p:Platform=$env:TargetPlatform /p:Configuration=$env:Configuration /p:UapAppxPackageBuildMode=$env:BuildMode # /p:AppxBundle=$env:AppxBundle /p:PackageCertificateKeyFile=$env:SigningCertificate /p:PackageCertificatePassword=${{ secrets.Pfx_Key }}
-        if: matrix.ChannelName != 'Prod_Store'
+      - name: publish self-contained app
+        run: dotnet publish $env:Solution_Path --runtime $env:Runtime --configuration=$env:Configuration --self-contained true
         env:
-          AppxBundle: Never
-          AppInstallerUri: ${{ matrix.DistributionUrl }}
-          BuildMode: SideLoadOnly
+          Runtime: ${{ matrix.Runtime }}
           Configuration: ${{ matrix.Configuration }}
-          GenerateAppInstallerFile: True
-          TargetPlatform: ${{ matrix.targetplatform }}
-
-      # Build the Windows Application Packaging project for Prod_Store
-      - name: Build the Windows Application Packaging Project (wapproj) for ${{ matrix.ChannelName }}
-        run: msbuild $env:Solution_Path /p:Platform=$env:TargetPlatform /p:Configuration=$env:Configuration /p:UapAppxPackageBuildMode=$env:BuildMode # /p:AppxBundle=$env:AppxBundle /p:GenerateAppInstallerFile=$env:GenerateAppInstallerFile /p:AppxPackageSigningEnabled=$env:AppxPackageSigningEnabled
-        if: matrix.ChannelName == 'Prod_Store'
-        env:
-          AppxBundle: Never
-          AppxPackageSigningEnabled: False
-          BuildMode: StoreOnly
-          Configuration: ${{ matrix.Configuration }}
-          GenerateAppInstallerFile: False
           TargetPlatform: ${{ matrix.targetplatform }}
       
       - name: tree
@@ -104,7 +70,7 @@ jobs:
 
       - name: zip
         run: |
-          Compress-Archive -DestinationPath Eleven-Percent.zip -Path Eleven-Percent\bin\${{matrix.Configuration}}\net7.0-windows\
+          Compress-Archive -DestinationPath Eleven-Percent.zip -Path Eleven-Percent\bin\${{matrix.Configuration}}\net7.0-windows\${{matrix.Runtime}}\publish
     
       - name: Release
         uses: softprops/action-gh-release@v1

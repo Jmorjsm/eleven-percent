@@ -1,7 +1,6 @@
-﻿using Timer = System.Windows.Forms.Timer;
+﻿namespace eleven_percent;
 
-namespace eleven_percent;
-
+using Timer = System.Windows.Forms.Timer;
 public class ElevenPercentApplicationContext : ApplicationContext
 {
     private NotifyIcon _trayIcon;
@@ -10,6 +9,16 @@ public class ElevenPercentApplicationContext : ApplicationContext
     {
         ContextMenuStrip contextMenuStrip = new ContextMenuStrip();
 
+        ToolStripMenuItem startupMenuItem = new ToolStripMenuItem("Run at startup")
+        {
+            Checked = StartupShortcutExists,
+            CheckOnClick = true
+        };
+
+        startupMenuItem.CheckStateChanged += ToggleRunAtStartup;
+        contextMenuStrip.Items.Add(startupMenuItem);
+        
+        
         contextMenuStrip.Items.Add(new ToolStripMenuItem("Exit", null, Exit));
         int percent = GetBatteryPercent();
         _trayIcon = new NotifyIcon()
@@ -26,6 +35,50 @@ public class ElevenPercentApplicationContext : ApplicationContext
         _timer.Tick += UpdateBatteryPercent;
 
         _timer.Start();
+    }
+
+    void CreateStartupShortcut()
+    {
+        string shortcutPath = StartupShortcutPath;
+
+        using (StreamWriter writer = new StreamWriter(shortcutPath))
+        {
+            string app = Path.Combine(System.AppContext.BaseDirectory, "eleven-percent.exe");
+            writer.WriteLine("[InternetShortcut]");
+            writer.WriteLine("URL=file:///" + app);
+            writer.WriteLine("IconIndex=0");
+            string icon = app.Replace('\\', '/');
+            writer.WriteLine("IconFile=" + icon);
+        }
+    }
+
+    private static string StartupShortcutPath
+    {
+        get
+        {
+            string startupDir = Environment.GetFolderPath(Environment.SpecialFolder.Startup);
+            string shortcutPath = Path.Combine(startupDir, "ElevenPercent.url");
+            return shortcutPath;
+        }
+    }
+
+    private static bool StartupShortcutExists => File.Exists(StartupShortcutPath);
+
+    private void ToggleRunAtStartup(object? sender, EventArgs e)
+    {
+        if(!(sender is ToolStripMenuItem menuItem))
+        {
+            throw new ArgumentException(nameof(sender));
+        }
+        
+        if (StartupShortcutExists)
+        {
+            File.Delete(StartupShortcutPath);
+        }
+        else
+        {
+            CreateStartupShortcut();
+        }
     }
 
     private void UpdateBatteryPercent(object? sender, EventArgs args)
