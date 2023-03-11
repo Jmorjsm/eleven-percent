@@ -19,6 +19,7 @@ jobs:
           - channel: Prod_Sideload
             Configuration: Release
             ChannelName: Prod_Sideload
+            Runtime: win-x64
             #DistributionUrl: https://microsoft.github.io/github-actions-for-desktop-apps-distribution-prod
             MsixPackageId: ElevenPercent.ProdSideload
             MsixPublisherId: CN=jmorjsm
@@ -57,9 +58,10 @@ jobs:
 
       # Build the Windows Application Packaging project for Dev and Prod_Sideload
       - name: publish self-contained app
-        run: dotnet publish $env:Solution_Path --configuration=$env:Configuration --self-contained true
+        run: dotnet publish $env:Solution_Path --runtime $env:Runtime --configuration=$env:Configuration --self-contained true
         if: matrix.ChannelName != 'Prod_Sideload'
         env:
+          Runtime: ${{ matrix.Runtime }}
           Configuration: ${{ matrix.Configuration }}
           TargetPlatform: ${{ matrix.targetplatform }}
       
@@ -69,7 +71,7 @@ jobs:
 
       - name: zip
         run: |
-          Compress-Archive -DestinationPath Eleven-Percent.zip -Path Eleven-Percent\bin\${{matrix.Configuration}}\net7.0-windows\
+          Compress-Archive -DestinationPath Eleven-Percent.zip -Path $env:Solution_Path\Eleven-Percent\bin\${{matrix.Configuration}}\net7.0-windows\${{matrix.Runtime}}\publish
     
       - name: Release
         uses: softprops/action-gh-release@v1
