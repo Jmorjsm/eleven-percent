@@ -54,7 +54,7 @@ jobs:
       - name:  Restore the application to populate the obj folder
         run: msbuild $env:Solution_Path /t:Restore /p:Configuration=$env:Configuration
         env:
-          Configuration: Debug
+          Configuration: ${{ matrix.Configuration }}
 
       # Build the Windows Application Packaging project for Dev and Prod_Sideload
       - name: publish self-contained app
@@ -70,7 +70,7 @@ jobs:
 
       - name: zip
         run: |
-          Compress-Archive -DestinationPath Eleven-Percent.zip -Path $env:Solution_Path\Eleven-Percent\bin\${{matrix.Configuration}}\net7.0-windows\${{matrix.Runtime}}\publish
+          Compress-Archive -DestinationPath Eleven-Percent.zip -Path Eleven-Percent\bin\${{matrix.Configuration}}\net7.0-windows\${{matrix.Runtime}}\publish
     
       - name: Release
         uses: softprops/action-gh-release@v1
