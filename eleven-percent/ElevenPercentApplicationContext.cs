@@ -1,5 +1,7 @@
-﻿namespace eleven_percent;
+﻿
+namespace eleven_percent;
 
+using Microsoft.Win32;
 using Timer = System.Windows.Forms.Timer;
 public class ElevenPercentApplicationContext : ApplicationContext
 {
@@ -37,6 +39,17 @@ public class ElevenPercentApplicationContext : ApplicationContext
         _timer.Start();
     }
 
+    public string GetTheme()
+    {
+        // Alternative: https://stackoverflow.com/questions/38734615/how-can-i-detect-windows-10-light-dark-mode
+	string registryKey = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes";
+        string? theme;
+        theme = Registry.GetValue(registryKey, "CurrentTheme", string.Empty) as string;
+        if (theme == null) return string.Empty;
+        theme = theme.Split('\\').Last().Split('.').First();
+        return theme;
+    }
+    
     void CreateStartupShortcut()
     {
         string shortcutPath = StartupShortcutPath;
